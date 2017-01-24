@@ -1,0 +1,56 @@
+(library
+ ((name        ppx_ast)
+  (public_name ppx_ast)
+  (libraries   (ocaml-compiler-libs.shadow
+                ocaml-compiler-libs.common
+                compiler-libs.common
+                ocaml-migrate-parsetree))
+  (flags       (:standard -open Ocaml_shadow))
+  (extra_disabled_warnings (9 27 32))
+  (js_of_ocaml ())
+  (modules (ast_helper
+            ast
+            docstrings
+            import
+            lexer
+            parse
+            parser
+            pprintast
+            ppx_ast
+            syntaxerr
+            warn))
+  (lint (pps (ppx_traverse -type-conv-keep-w32=impl)))
+  (preprocess no_preprocessing)))
+
+(ocamllex  (lexer))
+(ocamlyacc (parser0))
+
+(rule
+ ((targets (parser.ml))
+  (deps    (parser0.ml))
+  (action  "( echo \"open Import\"; cat ${<}; ) > ${@}")))
+
+(rule
+ ((targets (parser.mli))
+  (deps    (parser0.mli))
+  (action  "( echo \"open Import\"; cat ${<}; ) > ${@}")))
+
+(enforce_style
+ ((exceptions
+   (ast_helper.ml
+    ast_helper.mli
+    docstrings.ml
+    docstrings.mli
+    lexer.ml
+    parse.ml
+    parse.mli
+    parser.ml
+    parser.mli
+    parser0.ml
+    parser0.mli
+    pprintast.ml
+    pprintast.mli
+    syntaxerr.ml
+    syntaxerr.mli))))
+
+(provides ppx_ast:ast.ml)
