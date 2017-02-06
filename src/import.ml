@@ -4,21 +4,101 @@
    It must be opened in all modules, especially the ones coming from the compiler.
 *)
 
+module Js    = Migrate_parsetree.OCaml_403
+module Ocaml = Migrate_parsetree.Versions.OCaml_current
+
 module Selected_ast = struct
   open Migrate_parsetree
 
-  include Ast_403
+  include Js
 
-  let to_generic_ast x = Ast_403 x
-  let of_generic_ast = migrate_to_403
+  module Type = struct
+    type ('ocaml, 'js) t =
+      | Signature
+        : (Js   .Ast.Parsetree.signature,
+           Ocaml.Ast.Parsetree.signature) t
+      | Structure
+        : (Js   .Ast.Parsetree.structure,
+           Ocaml.Ast.Parsetree.structure) t
+      | Toplevel_phrase
+        : (Js   .Ast.Parsetree.toplevel_phrase,
+           Ocaml.Ast.Parsetree.toplevel_phrase) t
+      | Out_phrase
+        : (Js   .Ast.Outcometree.out_phrase,
+           Ocaml.Ast.Outcometree.out_phrase) t
+      | Expression
+        : (Js   .Ast.Parsetree.expression,
+           Ocaml.Ast.Parsetree.expression) t
+      | Core_type
+        : (Js   .Ast.Parsetree.core_type,
+           Ocaml.Ast.Parsetree.core_type) t
+      | Type_declaration
+        : (Js   .Ast.Parsetree.type_declaration,
+           Ocaml.Ast.Parsetree.type_declaration) t
+      | Type_extension
+        : (Js   .Ast.Parsetree.type_extension,
+           Ocaml.Ast.Parsetree.type_extension) t
+      | Extension_constructor
+        : (Js   .Ast.Parsetree.extension_constructor,
+           Ocaml.Ast.Parsetree.extension_constructor) t
+      | List
+        : ('a, 'b) t -> ('a list, 'b list) t
+      | Pair
+        : ('a, 'b) t * ('c, 'd) t -> ('a * 'c, 'b * 'd) t
+  end
+  open Type
 
-  let of_ocaml_ast x = of_generic_ast (ast_of_current x)
-  let to_ocaml_ast x = current_of_ast (to_generic_ast x)
+  module Of_ocaml = Versions.Convert(Ocaml)(Js)
+  module To_ocaml = Versions.Convert(Js)(Ocaml)
+
+  let rec of_ocaml : type ocaml js. (ocaml, js) Type.t -> ocaml -> js =
+    let open Of_ocaml in
+    fun node ->
+      match node with
+      | Signature             -> copy_signature
+      | Structure             -> copy_structure
+      | Toplevel_phrase       -> copy_toplevel_phrase
+      | Out_phrase            -> copy_out_phrase
+      | Expression            -> copy_expression
+      | Core_type             -> copy_core_type
+      | Type_declaration      -> copy_type_declaration
+      | Type_extension        -> copy_type_extension
+      | Extension_constructor -> copy_extension_constructor
+      | List t                -> List.map (of_ocaml t)
+      | Pair (a, b)           ->
+        let f = of_ocaml a in
+        let g = of_ocaml b in
+        fun (x, y) -> (f x, g y)
+
+  let rec to_ocaml : type ocaml js. (ocaml, js) Type.t -> js -> ocaml =
+    let open To_ocaml in
+    fun node ->
+      match node with
+      | Signature             -> copy_signature
+      | Structure             -> copy_structure
+      | Toplevel_phrase       -> copy_toplevel_phrase
+      | Out_phrase            -> copy_out_phrase
+      | Expression            -> copy_expression
+      | Core_type             -> copy_core_type
+      | Type_declaration      -> copy_type_declaration
+      | Type_extension        -> copy_type_extension
+      | Extension_constructor -> copy_extension_constructor
+      | List t                -> List.map (to_ocaml t)
+      | Pair (a, b)           ->
+        let f = to_ocaml a in
+        let g = to_ocaml b in
+        fun (x, y) -> (f x, g y)
+
+  let of_ocaml_mapper item f x =
+    to_ocaml item x |> f |> of_ocaml item
+
+  let to_ocaml_mapper item f x =
+    of_ocaml item x |> f |> to_ocaml item
 end
 
 (* Modules from migrate_parsetree *)
-module Parsetree = Selected_ast.Parsetree
-module Asttypes  = Selected_ast.Asttypes
+module Parsetree  = Selected_ast.Ast.Parsetree
+module Asttypes   = Selected_ast.Ast.Asttypes
 
 (* Modules imported directly from the compiler *)
 module Clflags    = Ocaml_common.Clflags

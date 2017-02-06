@@ -21,6 +21,10 @@
 (* Extensive Rewrite: Hongbo Zhang: University of Pennsylvania *)
 (* TODO more fine-grained precedence pretty-printing *)
 
+(* This module was copied from OCaml 4.05 and adapted for the 4.03 AST. The function
+   varify_constructors was copied from the 4.05 version of Ast_helper as it was needed
+   here. *)
+
 open Import
 open Asttypes
 open Format
@@ -28,6 +32,59 @@ open Location
 open Longident
 open Parsetree
 open Ast_helper
+
+module Typ = struct
+  include Typ
+
+  let varify_constructors var_names t =
+    let check_variable vl loc v =
+      if List.mem v vl then
+        raise Syntaxerr.(Error(Variable_in_scope(loc,v))) in
+    let rec loop t =
+      let desc =
+        match t.ptyp_desc with
+        | Ptyp_any -> Ptyp_any
+        | Ptyp_var x ->
+            check_variable var_names t.ptyp_loc x;
+            Ptyp_var x
+        | Ptyp_arrow (label,core_type,core_type') ->
+            Ptyp_arrow(label, loop core_type, loop core_type')
+        | Ptyp_tuple lst -> Ptyp_tuple (List.map loop lst)
+        | Ptyp_constr( { txt = Longident.Lident s }, [])
+          when List.mem s var_names ->
+            Ptyp_var s
+        | Ptyp_constr(longident, lst) ->
+            Ptyp_constr(longident, List.map loop lst)
+        | Ptyp_object (lst, o) ->
+            Ptyp_object
+              (List.map (fun (s, attrs, t) -> (s, attrs, loop t)) lst, o)
+        | Ptyp_class (longident, lst) ->
+            Ptyp_class (longident, List.map loop lst)
+        | Ptyp_alias(core_type, string) ->
+            check_variable var_names t.ptyp_loc string;
+            Ptyp_alias(loop core_type, string)
+        | Ptyp_variant(row_field_list, flag, lbl_lst_option) ->
+            Ptyp_variant(List.map loop_row_field row_field_list,
+                         flag, lbl_lst_option)
+        | Ptyp_poly(string_lst, core_type) ->
+          List.iter (fun v ->
+            check_variable var_names t.ptyp_loc v) string_lst;
+            Ptyp_poly(string_lst, loop core_type)
+        | Ptyp_package(longident,lst) ->
+            Ptyp_package(longident,List.map (fun (n,typ) -> (n,loop typ) ) lst)
+        | Ptyp_extension (s, arg) ->
+            Ptyp_extension (s, arg)
+      in
+      {t with ptyp_desc = desc}
+    and loop_row_field  =
+      function
+        | Rtag(label,attrs,flag,lst) ->
+            Rtag(label,attrs,flag,List.map loop lst)
+        | Rinherit t ->
+            Rinherit (loop t)
+    in
+    loop t
+end
 
 let prefix_symbols  = [ '!'; '?'; '~' ] ;;
 let infix_symbols = [ '='; '<'; '>'; '@'; '^'; '|'; '&'; '+'; '-'; '*'; '/';

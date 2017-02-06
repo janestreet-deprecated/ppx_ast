@@ -19,7 +19,9 @@ open Import
 
 (* This file is obtained by:
 
-   - copying the corresponding ast_xxx.ml file from migrate-parsetree
+   - copying a subset of the corresponding ast_xxx.ml file from migrate-parsetree
+   (sub-modules Asttypes and Parsetree)
+   - adding the type definitions for position, location, loc and longident
    - flattening all the modules
    - removing Asttypes.constant (unused and conflicts with Parsetree.constant)
    - renaming a few types:
@@ -29,7 +31,7 @@ open Import
    latter by the former. This is so that we can override iteration an the level of a
    longident loc
    - adding Lexing.position
-   - replacing all the (*IF_CURRENT = Foo.bar*) by: = Selected_ast.Foo.bar
+   - replacing all the (*IF_CURRENT = Foo.bar*) by: = Foo.bar
    - removing the extra values at the end of the file
    - replacing app [type ...] by [and ...] to make everything one recursive block
    - adding the types [intf_or_impl] and [ast] at the end
@@ -45,7 +47,7 @@ type position = Lexing.position =
   ; pos_cnum  : int
   }
 
-and location = Selected_ast.Location.t = {
+and location = Location.t = {
   loc_start: position;
   loc_end: position;
   loc_ghost: bool;
@@ -58,14 +60,14 @@ and location = Selected_ast.Location.t = {
    Else all fields are correct.
 *)
 
-and 'a loc = 'a Selected_ast.Location.loc = {
+and 'a loc = 'a Location.loc = {
   txt : 'a;
   loc : location;
 }
 
 (* Long identifiers, used in parsetree. *)
 
-and longident = Selected_ast.Longident.t =
+and longident = Longident.t =
     Lident of string
   | Ldot of longident * string
   | Lapply of longident * longident
@@ -74,36 +76,36 @@ and longident_loc = longident loc
 
 (* Auxiliary a.s.t. types used by parsetree and typedtree. *)
 
-and rec_flag = Selected_ast.Asttypes.rec_flag = Nonrecursive | Recursive
+and rec_flag = Asttypes.rec_flag = Nonrecursive | Recursive
 
-and direction_flag = Selected_ast.Asttypes.direction_flag = Upto | Downto
+and direction_flag = Asttypes.direction_flag = Upto | Downto
 
 (* Order matters, used in polymorphic comparison *)
-and private_flag = Selected_ast.Asttypes.private_flag = Private | Public
+and private_flag = Asttypes.private_flag = Private | Public
 
-and mutable_flag = Selected_ast.Asttypes.mutable_flag = Immutable | Mutable
+and mutable_flag = Asttypes.mutable_flag = Immutable | Mutable
 
-and virtual_flag = Selected_ast.Asttypes.virtual_flag = Virtual | Concrete
+and virtual_flag = Asttypes.virtual_flag = Virtual | Concrete
 
-and override_flag = Selected_ast.Asttypes.override_flag = Override | Fresh
+and override_flag = Asttypes.override_flag = Override | Fresh
 
-and closed_flag = Selected_ast.Asttypes.closed_flag = Closed | Open
+and closed_flag = Asttypes.closed_flag = Closed | Open
 
 and label = string
 
-and arg_label = Selected_ast.Asttypes.arg_label =
+and arg_label = Asttypes.arg_label =
     Nolabel
   | Labelled of string (*  label:T -> ... *)
   | Optional of string (* ?label:T -> ... *)
 
-and variance = Selected_ast.Asttypes.variance =
+and variance = Asttypes.variance =
   | Covariant
   | Contravariant
   | Invariant
 
 (** Abstract syntax tree produced by parsing *)
 
-and constant = Selected_ast.Parsetree.constant =
+and constant = Parsetree.constant =
     Pconst_integer of string * char option
   (* 3 3l 3L 3n
 
@@ -142,7 +144,7 @@ and extension = string loc * payload
 
 and attributes = attribute list
 
-and payload = Selected_ast.Parsetree.payload =
+and payload = Parsetree.payload =
   | PStr of structure
   | PSig of signature (* : SIG *)
   | PTyp of core_type  (* : T *)
@@ -152,14 +154,14 @@ and payload = Selected_ast.Parsetree.payload =
 
 (* Type expressions *)
 
-and core_type = Selected_ast.Parsetree.core_type =
+and core_type = Parsetree.core_type =
   {
     ptyp_desc: core_type_desc;
     ptyp_loc: location;
     ptyp_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and core_type_desc = Selected_ast.Parsetree.core_type_desc =
+and core_type_desc = Parsetree.core_type_desc =
   | Ptyp_any
   (*  _ *)
   | Ptyp_var of string
@@ -227,7 +229,7 @@ and package_type = longident_loc * (longident_loc * core_type) list
    (module S with type t1 = T1 and ... and tn = Tn)
 *)
 
-and row_field = Selected_ast.Parsetree.row_field =
+and row_field = Parsetree.row_field =
   | Rtag of label * attributes * bool * core_type list
   (* [`A]                   ( true,  [] )
      [`A of T]              ( false, [T] )
@@ -246,14 +248,14 @@ and row_field = Selected_ast.Parsetree.row_field =
 
 (* Patterns *)
 
-and pattern = Selected_ast.Parsetree.pattern =
+and pattern = Parsetree.pattern =
   {
     ppat_desc: pattern_desc;
     ppat_loc: location;
     ppat_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and pattern_desc = Selected_ast.Parsetree.pattern_desc =
+and pattern_desc = Parsetree.pattern_desc =
   | Ppat_any
   (* _ *)
   | Ppat_var of string loc
@@ -309,14 +311,14 @@ and pattern_desc = Selected_ast.Parsetree.pattern_desc =
 
 (* Value expressions *)
 
-and expression = Selected_ast.Parsetree.expression =
+and expression = Parsetree.expression =
   {
     pexp_desc: expression_desc;
     pexp_loc: location;
     pexp_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and expression_desc = Selected_ast.Parsetree.expression_desc =
+and expression_desc = Parsetree.expression_desc =
   | Pexp_ident of longident_loc
   (* x
      M.x
@@ -433,7 +435,7 @@ and expression_desc = Selected_ast.Parsetree.expression_desc =
   | Pexp_unreachable
   (* . *)
 
-and case = Selected_ast.Parsetree.case =   (* (P -> E) or (P when E0 -> E) *)
+and case = Parsetree.case =   (* (P -> E) or (P when E0 -> E) *)
   {
     pc_lhs: pattern;
     pc_guard: expression option;
@@ -442,7 +444,7 @@ and case = Selected_ast.Parsetree.case =   (* (P -> E) or (P when E0 -> E) *)
 
 (* Value descriptions *)
 
-and value_description = Selected_ast.Parsetree.value_description =
+and value_description = Parsetree.value_description =
   {
     pval_name: string loc;
     pval_type: core_type;
@@ -458,7 +460,7 @@ and value_description = Selected_ast.Parsetree.value_description =
 
 (* Type declarations *)
 
-and type_declaration = Selected_ast.Parsetree.type_declaration =
+and type_declaration = Parsetree.type_declaration =
   {
     ptype_name: string loc;
     ptype_params: (core_type * variance) list;
@@ -482,7 +484,7 @@ and type_declaration = Selected_ast.Parsetree.type_declaration =
    type t = ..                (open,     no manifest)
 *)
 
-and type_kind = Selected_ast.Parsetree.type_kind =
+and type_kind = Parsetree.type_kind =
   | Ptype_abstract
   | Ptype_variant of constructor_declaration list
   (* Invariant: non-empty list *)
@@ -490,7 +492,7 @@ and type_kind = Selected_ast.Parsetree.type_kind =
   (* Invariant: non-empty list *)
   | Ptype_open
 
-and label_declaration = Selected_ast.Parsetree.label_declaration =
+and label_declaration = Parsetree.label_declaration =
   {
     pld_name: string loc;
     pld_mutable: mutable_flag;
@@ -505,7 +507,7 @@ and label_declaration = Selected_ast.Parsetree.label_declaration =
     Note: T can be a Ptyp_poly.
 *)
 
-and constructor_declaration = Selected_ast.Parsetree.constructor_declaration =
+and constructor_declaration = Parsetree.constructor_declaration =
   {
     pcd_name: string loc;
     pcd_args: constructor_arguments;
@@ -514,7 +516,7 @@ and constructor_declaration = Selected_ast.Parsetree.constructor_declaration =
     pcd_attributes: attributes; (* C [@id1] [@id2] of ... *)
   }
 
-and constructor_arguments = Selected_ast.Parsetree.constructor_arguments =
+and constructor_arguments = Parsetree.constructor_arguments =
   | Pcstr_tuple of core_type list
   | Pcstr_record of label_declaration list
 
@@ -527,7 +529,7 @@ and constructor_arguments = Selected_ast.Parsetree.constructor_arguments =
    | C of {...} as t        (res = None,    args = Pcstr_record)
 *)
 
-and type_extension = Selected_ast.Parsetree.type_extension =
+and type_extension = Parsetree.type_extension =
   {
     ptyext_path: longident_loc;
     ptyext_params: (core_type * variance) list;
@@ -539,7 +541,7 @@ and type_extension = Selected_ast.Parsetree.type_extension =
    type t += ...
 *)
 
-and extension_constructor = Selected_ast.Parsetree.extension_constructor =
+and extension_constructor = Parsetree.extension_constructor =
   {
     pext_name: string loc;
     pext_kind : extension_constructor_kind;
@@ -547,7 +549,7 @@ and extension_constructor = Selected_ast.Parsetree.extension_constructor =
     pext_attributes: attributes; (* C [@id1] [@id2] of ... *)
   }
 
-and extension_constructor_kind = Selected_ast.Parsetree.extension_constructor_kind =
+and extension_constructor_kind = Parsetree.extension_constructor_kind =
     Pext_decl of constructor_arguments * core_type option
         (*
      | C of T1 * ... * Tn     ([T1; ...; Tn], None)
@@ -563,14 +565,14 @@ and extension_constructor_kind = Selected_ast.Parsetree.extension_constructor_ki
 
 (* Type expressions for the class language *)
 
-and class_type = Selected_ast.Parsetree.class_type =
+and class_type = Parsetree.class_type =
   {
     pcty_desc: class_type_desc;
     pcty_loc: location;
     pcty_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and class_type_desc = Selected_ast.Parsetree.class_type_desc =
+and class_type_desc = Parsetree.class_type_desc =
   | Pcty_constr of longident_loc * core_type list
   (* c
      ['a1, ..., 'an] c *)
@@ -584,7 +586,7 @@ and class_type_desc = Selected_ast.Parsetree.class_type_desc =
   | Pcty_extension of extension
   (* [%id] *)
 
-and class_signature = Selected_ast.Parsetree.class_signature =
+and class_signature = Parsetree.class_signature =
   {
     pcsig_self: core_type;
     pcsig_fields: class_type_field list;
@@ -593,14 +595,14 @@ and class_signature = Selected_ast.Parsetree.class_signature =
    object ... end             (self = Ptyp_any)
 *)
 
-and class_type_field = Selected_ast.Parsetree.class_type_field =
+and class_type_field = Parsetree.class_type_field =
   {
     pctf_desc: class_type_field_desc;
     pctf_loc: location;
     pctf_attributes: attributes; (* ... [@@id1] [@@id2] *)
   }
 
-and class_type_field_desc = Selected_ast.Parsetree.class_type_field_desc =
+and class_type_field_desc = Parsetree.class_type_field_desc =
   | Pctf_inherit of class_type
   (* inherit CT *)
   | Pctf_val of (string * mutable_flag * virtual_flag * core_type)
@@ -617,7 +619,7 @@ and class_type_field_desc = Selected_ast.Parsetree.class_type_field_desc =
   | Pctf_extension of extension
   (* [%%id] *)
 
-and 'a class_infos = 'a Selected_ast.Parsetree.class_infos =
+and 'a class_infos = 'a Parsetree.class_infos =
   {
     pci_virt: virtual_flag;
     pci_params: (core_type * variance) list;
@@ -639,14 +641,14 @@ and class_type_declaration = class_type class_infos
 
 (* Value expressions for the class language *)
 
-and class_expr = Selected_ast.Parsetree.class_expr =
+and class_expr = Parsetree.class_expr =
   {
     pcl_desc: class_expr_desc;
     pcl_loc: location;
     pcl_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and class_expr_desc = Selected_ast.Parsetree.class_expr_desc =
+and class_expr_desc = Parsetree.class_expr_desc =
   | Pcl_constr of longident_loc * core_type list
   (* c
      ['a1, ..., 'an] c *)
@@ -674,7 +676,7 @@ and class_expr_desc = Selected_ast.Parsetree.class_expr_desc =
   | Pcl_extension of extension
   (* [%id] *)
 
-and class_structure = Selected_ast.Parsetree.class_structure =
+and class_structure = Parsetree.class_structure =
   {
     pcstr_self: pattern;
     pcstr_fields: class_field list;
@@ -683,14 +685,14 @@ and class_structure = Selected_ast.Parsetree.class_structure =
    object ... end           (self = Ppat_any)
 *)
 
-and class_field = Selected_ast.Parsetree.class_field =
+and class_field = Parsetree.class_field =
   {
     pcf_desc: class_field_desc;
     pcf_loc: location;
     pcf_attributes: attributes; (* ... [@@id1] [@@id2] *)
   }
 
-and class_field_desc = Selected_ast.Parsetree.class_field_desc =
+and class_field_desc = Parsetree.class_field_desc =
   | Pcf_inherit of override_flag * class_expr * string option
   (* inherit CE
      inherit CE as x
@@ -714,7 +716,7 @@ and class_field_desc = Selected_ast.Parsetree.class_field_desc =
   | Pcf_extension of extension
   (* [%%id] *)
 
-and class_field_kind = Selected_ast.Parsetree.class_field_kind =
+and class_field_kind = Parsetree.class_field_kind =
   | Cfk_virtual of core_type
   | Cfk_concrete of override_flag * expression
 
@@ -724,14 +726,14 @@ and class_declaration = class_expr class_infos
 
 (* Type expressions for the module language *)
 
-and module_type = Selected_ast.Parsetree.module_type =
+and module_type = Parsetree.module_type =
   {
     pmty_desc: module_type_desc;
     pmty_loc: location;
     pmty_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and module_type_desc = Selected_ast.Parsetree.module_type_desc =
+and module_type_desc = Parsetree.module_type_desc =
   | Pmty_ident of longident_loc
   (* S *)
   | Pmty_signature of signature
@@ -749,13 +751,13 @@ and module_type_desc = Selected_ast.Parsetree.module_type_desc =
 
 and signature = signature_item list
 
-and signature_item = Selected_ast.Parsetree.signature_item =
+and signature_item = Parsetree.signature_item =
   {
     psig_desc: signature_item_desc;
     psig_loc: location;
   }
 
-and signature_item_desc = Selected_ast.Parsetree.signature_item_desc =
+and signature_item_desc = Parsetree.signature_item_desc =
   | Psig_value of value_description
           (*
      val x: T
@@ -787,7 +789,7 @@ and signature_item_desc = Selected_ast.Parsetree.signature_item_desc =
   | Psig_extension of extension * attributes
   (* [%%id] *)
 
-and module_declaration = Selected_ast.Parsetree.module_declaration =
+and module_declaration = Parsetree.module_declaration =
   {
     pmd_name: string loc;
     pmd_type: module_type;
@@ -796,7 +798,7 @@ and module_declaration = Selected_ast.Parsetree.module_declaration =
   }
 (* S : MT *)
 
-and module_type_declaration = Selected_ast.Parsetree.module_type_declaration =
+and module_type_declaration = Parsetree.module_type_declaration =
   {
     pmtd_name: string loc;
     pmtd_type: module_type option;
@@ -807,7 +809,7 @@ and module_type_declaration = Selected_ast.Parsetree.module_type_declaration =
    S       (abstract module type declaration, pmtd_type = None)
 *)
 
-and open_description = Selected_ast.Parsetree.open_description =
+and open_description = Parsetree.open_description =
   {
     popen_lid: longident_loc;
     popen_override: override_flag;
@@ -819,7 +821,7 @@ and open_description = Selected_ast.Parsetree.open_description =
    open  X - popen_override = Fresh
 *)
 
-and 'a include_infos = 'a Selected_ast.Parsetree.include_infos =
+and 'a include_infos = 'a Parsetree.include_infos =
   {
     pincl_mod: 'a;
     pincl_loc: location;
@@ -832,7 +834,7 @@ and include_description = module_type include_infos
 and include_declaration = module_expr include_infos
 (* include ME *)
 
-and with_constraint = Selected_ast.Parsetree.with_constraint =
+and with_constraint = Parsetree.with_constraint =
   | Pwith_type of longident_loc * type_declaration
   (* with type X.t = ...
 
@@ -847,14 +849,14 @@ and with_constraint = Selected_ast.Parsetree.with_constraint =
 
 (* Value expressions for the module language *)
 
-and module_expr = Selected_ast.Parsetree.module_expr =
+and module_expr = Parsetree.module_expr =
   {
     pmod_desc: module_expr_desc;
     pmod_loc: location;
     pmod_attributes: attributes; (* ... [@id1] [@id2] *)
   }
 
-and module_expr_desc = Selected_ast.Parsetree.module_expr_desc =
+and module_expr_desc = Parsetree.module_expr_desc =
   | Pmod_ident of longident_loc
   (* X *)
   | Pmod_structure of structure
@@ -872,13 +874,13 @@ and module_expr_desc = Selected_ast.Parsetree.module_expr_desc =
 
 and structure = structure_item list
 
-and structure_item = Selected_ast.Parsetree.structure_item =
+and structure_item = Parsetree.structure_item =
   {
     pstr_desc: structure_item_desc;
     pstr_loc: location;
   }
 
-and structure_item_desc = Selected_ast.Parsetree.structure_item_desc =
+and structure_item_desc = Parsetree.structure_item_desc =
   | Pstr_eval of expression * attributes
   (* E *)
   | Pstr_value of rec_flag * value_binding list
@@ -914,7 +916,7 @@ and structure_item_desc = Selected_ast.Parsetree.structure_item_desc =
   | Pstr_extension of extension * attributes
   (* [%%id] *)
 
-and value_binding = Selected_ast.Parsetree.value_binding =
+and value_binding = Parsetree.value_binding =
   {
     pvb_pat: pattern;
     pvb_expr: expression;
@@ -922,7 +924,7 @@ and value_binding = Selected_ast.Parsetree.value_binding =
     pvb_loc: location;
   }
 
-and module_binding = Selected_ast.Parsetree.module_binding =
+and module_binding = Parsetree.module_binding =
   {
     pmb_name: string loc;
     pmb_expr: module_expr;
@@ -935,25 +937,17 @@ and module_binding = Selected_ast.Parsetree.module_binding =
 
 (* Toplevel phrases *)
 
-and toplevel_phrase = Selected_ast.Parsetree.toplevel_phrase =
+and toplevel_phrase = Parsetree.toplevel_phrase =
   | Ptop_def of structure
   | Ptop_dir of string * directive_argument
   (* #use, #load ... *)
 
-and directive_argument = Selected_ast.Parsetree.directive_argument =
+and directive_argument = Parsetree.directive_argument =
   | Pdir_none
   | Pdir_string of string
   | Pdir_int of string * char option
   | Pdir_ident of longident
   | Pdir_bool of bool
-
-(** {2 AST} *)
-
-and ('intf, 'impl) intf_or_impl = ('intf, 'impl) Migrate_parsetree.intf_or_impl =
-  | Intf of 'intf
-  | Impl of 'impl
-
-and ast = (signature, structure) intf_or_impl
 
 [@@deriving_inline traverse]
 class virtual map =
@@ -1758,17 +1752,6 @@ class virtual map =
           let b = self#option self#char b  in Pdir_int (a, b)
         | Pdir_ident a -> let a = self#longident a  in Pdir_ident a
         | Pdir_bool a -> let a = self#bool a  in Pdir_bool a
-    method intf_or_impl :
-      'a 'b .
-           ('a -> 'a) ->
-      ('b -> 'b) -> ('a,'b) intf_or_impl -> ('a,'b) intf_or_impl=
-      fun _intf  ->
-      fun _impl  ->
-      fun x  ->
-        match x with
-        | Intf a -> let a = _intf a  in Intf a
-        | Impl a -> let a = _impl a  in Impl a
-    method ast : ast -> ast= self#intf_or_impl self#signature self#structure
   end
 class virtual iter =
   object (self)
@@ -2317,12 +2300,6 @@ class virtual iter =
         | Pdir_int (a,b) -> (self#string a; self#option self#char b)
         | Pdir_ident a -> self#longident a
         | Pdir_bool a -> self#bool a
-    method intf_or_impl :
-      'a 'b . ('a -> unit) -> ('b -> unit) -> ('a,'b) intf_or_impl -> unit=
-      fun _intf  ->
-      fun _impl  ->
-      fun x  -> match x with | Intf a -> _intf a | Impl a -> _impl a
-    method ast : ast -> unit= self#intf_or_impl self#signature self#structure
   end
 class virtual ['acc] fold =
   object (self)
@@ -3113,17 +3090,6 @@ class virtual ['acc] fold =
           let acc = self#option self#char b acc  in acc
         | Pdir_ident a -> self#longident a acc
         | Pdir_bool a -> self#bool a acc
-    method intf_or_impl :
-      'a 'b .
-           ('a -> 'acc -> 'acc) ->
-      ('b -> 'acc -> 'acc) -> ('a,'b) intf_or_impl -> 'acc -> 'acc=
-      fun _intf  ->
-      fun _impl  ->
-      fun x  ->
-      fun acc  ->
-        match x with | Intf a -> _intf a acc | Impl a -> _impl a acc
-    method ast : ast -> 'acc -> 'acc=
-      self#intf_or_impl self#signature self#structure
   end
 class virtual ['acc] fold_map =
   object (self)
@@ -4259,20 +4225,6 @@ class virtual ['acc] fold_map =
           let (a,acc) = self#longident a acc  in ((Pdir_ident a), acc)
         | Pdir_bool a ->
           let (a,acc) = self#bool a acc  in ((Pdir_bool a), acc)
-    method intf_or_impl :
-      'a 'b .
-           ('a -> 'acc -> ('a * 'acc)) ->
-      ('b -> 'acc -> ('b * 'acc)) ->
-      ('a,'b) intf_or_impl -> 'acc -> (('a,'b) intf_or_impl * 'acc)=
-      fun _intf  ->
-      fun _impl  ->
-      fun x  ->
-      fun acc  ->
-        match x with
-        | Intf a -> let (a,acc) = _intf a acc  in ((Intf a), acc)
-        | Impl a -> let (a,acc) = _impl a acc  in ((Impl a), acc)
-    method ast : ast -> 'acc -> (ast * 'acc)=
-      self#intf_or_impl self#signature self#structure
   end
 class virtual ['ctx] map_with_context =
   object (self)
@@ -5230,20 +5182,6 @@ class virtual ['ctx] map_with_context =
           let b = self#option self#char ctx b  in Pdir_int (a, b)
         | Pdir_ident a -> let a = self#longident ctx a  in Pdir_ident a
         | Pdir_bool a -> let a = self#bool ctx a  in Pdir_bool a
-    method intf_or_impl :
-      'a 'b .
-           ('ctx -> 'a -> 'a) ->
-      ('ctx -> 'b -> 'b) ->
-      'ctx -> ('a,'b) intf_or_impl -> ('a,'b) intf_or_impl=
-      fun _intf  ->
-      fun _impl  ->
-      fun ctx  ->
-      fun x  ->
-        match x with
-        | Intf a -> let a = _intf ctx a  in Intf a
-        | Impl a -> let a = _impl ctx a  in Impl a
-    method ast : 'ctx -> ast -> ast=
-      self#intf_or_impl self#signature self#structure
   end
 class virtual ['res] lift =
   object (self)
@@ -6268,15 +6206,6 @@ class virtual ['res] lift =
         | Pdir_ident a ->
           let a = self#longident a  in self#constr "Pdir_ident" [a]
         | Pdir_bool a -> let a = self#bool a  in self#constr "Pdir_bool" [a]
-    method intf_or_impl :
-      'a 'b . ('a -> 'res) -> ('b -> 'res) -> ('a,'b) intf_or_impl -> 'res=
-      fun _intf  ->
-      fun _impl  ->
-      fun x  ->
-        match x with
-        | Intf a -> let a = _intf a  in self#constr "Intf" [a]
-        | Impl a -> let a = _impl a  in self#constr "Impl" [a]
-    method ast : ast -> 'res= self#intf_or_impl self#signature self#structure
   end
 [@@@end]
 

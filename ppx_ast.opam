@@ -11,7 +11,7 @@ build: [
 depends: [
   "jbuilder"
   "ocaml-compiler-libs"
-  "migrate-parsetree"
+  "ocaml-migrate-parsetree"
 ]
 available: [ ocaml-version >= "4.03.0" ]
 descr: "
