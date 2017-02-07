@@ -13,7 +13,7 @@ module Selected_ast = struct
   include Js
 
   module Type = struct
-    type ('ocaml, 'js) t =
+    type ('js, 'ocaml) t =
       | Signature
         : (Js   .Ast.Parsetree.signature,
            Ocaml.Ast.Parsetree.signature) t
@@ -51,7 +51,7 @@ module Selected_ast = struct
   module Of_ocaml = Versions.Convert(Ocaml)(Js)
   module To_ocaml = Versions.Convert(Js)(Ocaml)
 
-  let rec of_ocaml : type ocaml js. (ocaml, js) Type.t -> ocaml -> js =
+  let rec of_ocaml : type ocaml js. (js, ocaml) Type.t -> ocaml -> js =
     let open Of_ocaml in
     fun node ->
       match node with
@@ -70,7 +70,7 @@ module Selected_ast = struct
         let g = of_ocaml b in
         fun (x, y) -> (f x, g y)
 
-  let rec to_ocaml : type ocaml js. (ocaml, js) Type.t -> js -> ocaml =
+  let rec to_ocaml : type ocaml js. (js, ocaml) Type.t -> js -> ocaml =
     let open To_ocaml in
     fun node ->
       match node with
