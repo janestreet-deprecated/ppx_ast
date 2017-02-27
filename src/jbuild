@@ -54,3 +54,5 @@
     syntaxerr.mli))))
 
 (provides ppx_ast:ast.ml)
+
+(jbuild_version jane_street)
