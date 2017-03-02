@@ -5,9 +5,7 @@
                 ocaml-compiler-libs.common
                 compiler-libs.common
                 ocaml-migrate-parsetree))
-  (flags       (:standard -open Ocaml_shadow))
-  (extra_disabled_warnings (9 27 32))
-  (js_of_ocaml ())
+  (flags ((:standard -open Ocaml_shadow) -w -9-27-32))
   (modules (ast_helper
             ast
             docstrings
@@ -35,23 +33,6 @@
   (deps    (parser0.mli))
   (action  "( echo \"open Import\"; cat ${<}; ) > ${@}")))
 
-(enforce_style
- ((exceptions
-   (ast_helper.ml
-    ast_helper.mli
-    docstrings.ml
-    docstrings.mli
-    lexer.ml
-    parse.ml
-    parse.mli
-    parser.ml
-    parser.mli
-    parser0.ml
-    parser0.mli
-    pprintast.ml
-    pprintast.mli
-    syntaxerr.ml
-    syntaxerr.mli))))
 
 (provides ppx_ast:ast.ml)
 
