@@ -26,12 +26,12 @@
 (rule
  ((targets (parser.ml))
   (deps    (parser0.ml))
-  (action  "( echo \"open Import\"; cat ${<}; ) > ${@}")))
+  (action  (bash "( echo \"open Import\"; cat ${<}; ) > ${@}"))))
 
 (rule
  ((targets (parser.mli))
   (deps    (parser0.mli))
-  (action  "( echo \"open Import\"; cat ${<}; ) > ${@}")))
+  (action  (bash "( echo \"open Import\"; cat ${<}; ) > ${@}"))))
 
 
 (provides ppx_ast:ast.ml)
