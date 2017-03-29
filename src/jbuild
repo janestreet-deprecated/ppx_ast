@@ -26,13 +26,17 @@
 (rule
  ((targets (parser.ml))
   (deps    (parser0.ml))
-  (action  (bash "( echo \"open Import\"; cat ${<}; ) > ${@}"))))
+  (action  (with-stdout-to ${@}
+            (progn
+             (echo "open Import\n")
+             (cat ${<}))))))
 
 (rule
  ((targets (parser.mli))
   (deps    (parser0.mli))
-  (action  (bash "( echo \"open Import\"; cat ${<}; ) > ${@}"))))
-
-
+  (action  (with-stdout-to ${@}
+            (progn
+             (echo "open Import\n")
+             (cat ${<}))))))
 
 (jbuild_version 1)
