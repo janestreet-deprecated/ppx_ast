@@ -7,7 +7,7 @@
 module Js    = Migrate_parsetree.OCaml_403
 module Ocaml = Migrate_parsetree.Versions.OCaml_current
 
-module Selected_ast = struct
+module Select_ast(Ocaml : Migrate_parsetree.Versions.OCaml_version) = struct
   open Migrate_parsetree
 
   include Js
@@ -95,6 +95,8 @@ module Selected_ast = struct
   let to_ocaml_mapper item f x =
     of_ocaml item x |> f |> to_ocaml item
 end
+
+module Selected_ast = Select_ast(Ocaml)
 
 (* Modules from migrate_parsetree *)
 module Parsetree  = Selected_ast.Ast.Parsetree
