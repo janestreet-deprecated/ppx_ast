@@ -469,6 +469,14 @@ and simple_pattern ctxt (f:Format.formatter) (x:pattern) : unit =
     | Ppat_exception p ->
       pp f "@[<2>exception@;%a@]" (pattern1 ctxt) p
     | Ppat_extension e -> extension ctxt f e
+    | Ppat_open (lid, p) ->
+        let with_paren =
+        match p.ppat_desc with
+        | Ppat_array _ | Ppat_record _
+        | Ppat_construct (({txt=Lident ("()"|"[]");_}), _) -> false
+        | _ -> true in
+        pp f "@[<2>%a.%a @]" longident_loc lid
+          (paren with_paren @@ pattern1 ctxt) p
     | _ -> paren true (pattern ctxt) f x
 
 and label_exp ctxt f (l,opt,p) =
@@ -547,7 +555,7 @@ and expression ctxt f x =
       paren true (expression reset_ctxt) f x
     | Pexp_ifthenelse _ | Pexp_sequence _ when ctxt.ifthenelse ->
       paren true (expression reset_ctxt) f x
-    | Pexp_let _ | Pexp_letmodule _ | Pexp_open _
+    | Pexp_let _ | Pexp_letmodule _ | Pexp_open _ | Pexp_letexception _
       when ctxt.semi ->
       paren true (expression reset_ctxt) f x
     | Pexp_fun (l, e0, p, e) ->
@@ -652,6 +660,10 @@ and expression ctxt f x =
     | Pexp_letmodule (s, me, e) ->
       pp f "@[<hov2>let@ module@ %s@ =@ %a@ in@ %a@]" s.txt
         (module_expr reset_ctxt) me (expression ctxt) e
+    | Pexp_letexception (cd, e) ->
+        pp f "@[<hov2>let@ exception@ %a@ in@ %a@]"
+          (extension_constructor ctxt) cd
+          (expression ctxt) e
     | Pexp_assert e ->
       pp f "@[<hov2>assert@ %a@]" (simple_expr ctxt) e
     | Pexp_lazy (e) ->

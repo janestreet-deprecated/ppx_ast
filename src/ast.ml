@@ -308,6 +308,7 @@ and pattern_desc = Parsetree.pattern_desc =
   (* exception P *)
   | Ppat_extension of extension
   (* [%id] *)
+  | Ppat_open of longident loc * pattern
 
 (* Value expressions *)
 
@@ -406,6 +407,8 @@ and expression_desc = Parsetree.expression_desc =
   (* {< x1 = E1; ...; Xn = En >} *)
   | Pexp_letmodule of string loc * module_expr * expression
   (* let module M = ME in E *)
+  | Pexp_letexception of extension_constructor * expression
+  (* let exception C in E *)
   | Pexp_assert of expression
   (* assert E
      Note: "assert false" is treated in a special way by the
@@ -1139,6 +1142,9 @@ class virtual map =
         | Ppat_unpack a -> let a = self#loc self#string a  in Ppat_unpack a
         | Ppat_exception a -> let a = self#pattern a  in Ppat_exception a
         | Ppat_extension a -> let a = self#extension a  in Ppat_extension a
+        | Ppat_open (a,b) ->
+          let a = self#loc self#longident a  in
+          let b = self#pattern b  in Ppat_open (a, b)
     method expression : expression -> expression=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
         let pexp_desc = self#expression_desc pexp_desc  in
@@ -1244,6 +1250,9 @@ class virtual map =
           let a = self#loc self#string a  in
           let b = self#module_expr b  in
           let c = self#expression c  in Pexp_letmodule (a, b, c)
+        | Pexp_letexception (a,b) ->
+          let a = self#extension_constructor a  in
+          let b = self#expression b  in Pexp_letexception (a, b)
         | Pexp_assert a -> let a = self#expression a  in Pexp_assert a
         | Pexp_lazy a -> let a = self#expression a  in Pexp_lazy a
         | Pexp_poly (a,b) ->
@@ -1884,6 +1893,7 @@ class virtual iter =
         | Ppat_unpack a -> self#loc self#string a
         | Ppat_exception a -> self#pattern a
         | Ppat_extension a -> self#extension a
+        | Ppat_open (a,b) -> (self#loc self#longident a; self#pattern b)
     method expression : expression -> unit=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
         self#expression_desc pexp_desc;
@@ -1947,6 +1957,8 @@ class virtual iter =
             (fun (a,b)  -> self#loc self#string a; self#expression b) a
         | Pexp_letmodule (a,b,c) ->
           (self#loc self#string a; self#module_expr b; self#expression c)
+        | Pexp_letexception (a,b) ->
+          (self#extension_constructor a; self#expression b)
         | Pexp_assert a -> self#expression a
         | Pexp_lazy a -> self#expression a
         | Pexp_poly (a,b) ->
@@ -2513,6 +2525,9 @@ class virtual ['acc] fold =
         | Ppat_unpack a -> self#loc self#string a acc
         | Ppat_exception a -> self#pattern a acc
         | Ppat_extension a -> self#extension a acc
+        | Ppat_open (a,b) ->
+          let acc = self#loc self#longident a acc  in
+          let acc = self#pattern b acc  in acc
     method expression : expression -> 'acc -> 'acc=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
       fun acc  ->
@@ -2615,6 +2630,9 @@ class virtual ['acc] fold =
           let acc = self#loc self#string a acc  in
           let acc = self#module_expr b acc  in
           let acc = self#expression c acc  in acc
+        | Pexp_letexception (a,b) ->
+          let acc = self#extension_constructor a acc  in
+          let acc = self#expression b acc  in acc
         | Pexp_assert a -> self#expression a acc
         | Pexp_lazy a -> self#expression a acc
         | Pexp_poly (a,b) ->
@@ -3361,6 +3379,9 @@ class virtual ['acc] fold_map =
         | Ppat_extension a ->
           let (a,acc) = self#extension a acc  in
           ((Ppat_extension a), acc)
+        | Ppat_open (a,b) ->
+          let (a,acc) = self#loc self#longident a acc  in
+          let (b,acc) = self#pattern b acc  in ((Ppat_open (a, b)), acc)
     method expression : expression -> 'acc -> (expression * 'acc)=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
       fun acc  ->
@@ -3498,6 +3519,10 @@ class virtual ['acc] fold_map =
           let (b,acc) = self#module_expr b acc  in
           let (c,acc) = self#expression c acc  in
           ((Pexp_letmodule (a, b, c)), acc)
+        | Pexp_letexception (a,b) ->
+          let (a,acc) = self#extension_constructor a acc  in
+          let (b,acc) = self#expression b acc  in
+          ((Pexp_letexception (a, b)), acc)
         | Pexp_assert a ->
           let (a,acc) = self#expression a acc  in ((Pexp_assert a), acc)
         | Pexp_lazy a ->
@@ -4455,6 +4480,9 @@ class virtual ['ctx] map_with_context =
           let a = self#pattern ctx a  in Ppat_exception a
         | Ppat_extension a ->
           let a = self#extension ctx a  in Ppat_extension a
+        | Ppat_open (a,b) ->
+          let a = self#loc self#longident ctx a  in
+          let b = self#pattern ctx b  in Ppat_open (a, b)
     method expression : 'ctx -> expression -> expression=
       fun ctx  ->
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
@@ -4569,6 +4597,9 @@ class virtual ['ctx] map_with_context =
           let a = self#loc self#string ctx a  in
           let b = self#module_expr ctx b  in
           let c = self#expression ctx c  in Pexp_letmodule (a, b, c)
+        | Pexp_letexception (a,b) ->
+          let a = self#extension_constructor ctx a  in
+          let b = self#expression ctx b  in Pexp_letexception (a, b)
         | Pexp_assert a -> let a = self#expression ctx a  in Pexp_assert a
         | Pexp_lazy a -> let a = self#expression ctx a  in Pexp_lazy a
         | Pexp_poly (a,b) ->
@@ -5449,6 +5480,9 @@ class virtual ['res] lift =
           let a = self#pattern a  in self#constr "Ppat_exception" [a]
         | Ppat_extension a ->
           let a = self#extension a  in self#constr "Ppat_extension" [a]
+        | Ppat_open (a,b) ->
+          let a = self#loc self#longident a  in
+          let b = self#pattern b  in self#constr "Ppat_open" [a; b]
     method expression : expression -> 'res=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
         let pexp_desc = self#expression_desc pexp_desc  in
@@ -5569,6 +5603,10 @@ class virtual ['res] lift =
           let b = self#module_expr b  in
           let c = self#expression c  in
           self#constr "Pexp_letmodule" [a; b; c]
+        | Pexp_letexception (a,b) ->
+          let a = self#extension_constructor a  in
+          let b = self#expression b  in
+          self#constr "Pexp_letexception" [a; b]
         | Pexp_assert a ->
           let a = self#expression a  in self#constr "Pexp_assert" [a]
         | Pexp_lazy a ->

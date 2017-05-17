@@ -15,6 +15,8 @@
 
 open Import
 
+(** Documentation comments *)
+
 (** (Re)Initialise all docstring state *)
 val init : unit -> unit
 
@@ -28,6 +30,9 @@ type docstring
 
 (** Create a docstring *)
 val docstring : string -> Location.t -> docstring
+
+(** Register a docstring *)
+val register : docstring -> unit
 
 (** Get the text of a docstring *)
 val docstring_body : docstring -> string

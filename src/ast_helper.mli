@@ -107,6 +107,7 @@ module Pat:
     val type_: ?loc:loc -> ?attrs:attrs -> lid -> pattern
     val lazy_: ?loc:loc -> ?attrs:attrs -> pattern -> pattern
     val unpack: ?loc:loc -> ?attrs:attrs -> str -> pattern
+    val open_: ?loc:loc -> ?attrs:attrs  -> lid -> pattern -> pattern
     val exception_: ?loc:loc -> ?attrs:attrs -> pattern -> pattern
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> pattern
   end
@@ -159,6 +160,9 @@ module Exp:
                   -> expression
     val letmodule: ?loc:loc -> ?attrs:attrs -> str -> module_expr -> expression
                    -> expression
+    val letexception:
+      ?loc:loc -> ?attrs:attrs -> extension_constructor -> expression
+      -> expression
     val assert_: ?loc:loc -> ?attrs:attrs -> expression -> expression
     val lazy_: ?loc:loc -> ?attrs:attrs -> expression -> expression
     val poly: ?loc:loc -> ?attrs:attrs -> expression -> core_type option
