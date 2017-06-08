@@ -514,6 +514,7 @@ and constructor_declaration = Parsetree.constructor_declaration =
   {
     pcd_name: string loc;
     pcd_args: constructor_arguments;
+    (* for GADT constructors, [pcd_res] is the right-hand side of the arrow *)
     pcd_res: core_type option;
     pcd_loc: location;
     pcd_attributes: attributes; (* C [@id1] [@id2] of ... *)
@@ -6246,4 +6247,3 @@ class virtual ['res] lift =
         | Pdir_bool a -> let a = self#bool a  in self#constr "Pdir_bool" [a]
   end
 [@@@end]
-
