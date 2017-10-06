@@ -14,7 +14,7 @@ depends: [
   "ocaml-compiler-libs"     {>= "v0.9" & < "v0.10"}
   "ocaml-migrate-parsetree" {>= "0.4"}
 ]
-available: [ ocaml-version >= "4.03.0" ]
+available: [ ocaml-version >= "4.06.0" ]
 descr: "
 OCaml AST used by Jane Street ppx rewriters
 
