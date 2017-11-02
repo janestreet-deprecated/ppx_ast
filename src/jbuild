@@ -5,7 +5,7 @@
                 ocaml-compiler-libs.common
                 compiler-libs.common
                 ocaml-migrate-parsetree))
-  (flags ((:standard -open Ocaml_shadow) -w -9-27-32))
+  (flags ((:standard -open Ocaml_shadow -safe-string) -w -9-27-32))
   (modules (ast_helper
             ast
             docstrings
