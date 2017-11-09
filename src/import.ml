@@ -102,9 +102,13 @@ module Selected_ast = Select_ast(Ocaml)
 module Parsetree  = Selected_ast.Ast.Parsetree
 module Asttypes   = Selected_ast.Ast.Asttypes
 
+module Location   = struct
+  include Ocaml_common.Location
+  include Location_helper
+end
+
 (* Modules imported directly from the compiler *)
 module Clflags    = Ocaml_common.Clflags
-module Location   = Ocaml_common.Location
 module Longident  = Ocaml_common.Longident
 module Misc       = Ocaml_common.Misc
 module Warnings   = Ocaml_common.Warnings
