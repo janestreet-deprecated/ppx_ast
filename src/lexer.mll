@@ -223,7 +223,7 @@ let escaped_newlines = ref false
 (* Warn about Latin-1 characters used in idents *)
 
 let warn_latin1 lexbuf =
-  Location_helper.deprecated (Location.curr lexbuf)
+  Location.deprecated (Location.curr lexbuf)
     "ISO-Latin1 characters in identifiers"
 ;;
 

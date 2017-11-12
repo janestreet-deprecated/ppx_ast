@@ -1,1 +1,1 @@
-let deprecated loc s = OCaml_common.Location.deprecated t s
+
