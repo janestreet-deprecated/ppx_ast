@@ -24,10 +24,12 @@
 (ocamllex  (lexer))
 (ocamlyacc (parser0))
 
+;; This is to make the code compatible with different versions of
+;; OCaml
 (rule
  ((targets (location_helper.ml))
-  (deps    (../generate/select.exe location_helper.ml-4.06 location_helper.ml-default))
-  (action  (bash "../generate/select.exe location_helper.ml-4.06 location_helper.ml-default > ${@}"))))
+  (deps    (gen-compiler_specifics))
+  (action  (run ${OCAML} ${<} ${ocaml_version} ${@}))))
 
 (rule
  ((targets (parser.ml))
