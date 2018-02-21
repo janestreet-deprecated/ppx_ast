@@ -62,20 +62,20 @@ module Typ :
     val tuple: ?loc:loc -> ?attrs:attrs -> core_type list -> core_type
     val constr: ?loc:loc -> ?attrs:attrs -> lid -> core_type list -> core_type
     val object_: ?loc:loc -> ?attrs:attrs ->
-                  (string * attributes * core_type) list -> closed_flag ->
+                  (str * attributes * core_type) list -> closed_flag ->
                   core_type
     val class_: ?loc:loc -> ?attrs:attrs -> lid -> core_type list -> core_type
     val alias: ?loc:loc -> ?attrs:attrs -> core_type -> string -> core_type
     val variant: ?loc:loc -> ?attrs:attrs -> row_field list -> closed_flag
                  -> label list option -> core_type
-    val poly: ?loc:loc -> ?attrs:attrs -> string list -> core_type -> core_type
+    val poly: ?loc:loc -> ?attrs:attrs -> str list -> core_type -> core_type
     val package: ?loc:loc -> ?attrs:attrs -> lid -> (lid * core_type) list
                  -> core_type
     val extension: ?loc:loc -> ?attrs:attrs -> extension -> core_type
 
     val force_poly: core_type -> core_type
 
-    val varify_constructors: string list -> core_type -> core_type
+    val varify_constructors: str list -> core_type -> core_type
     (** [varify_constructors newtypes te] is type expression [te], of which
         any of nullary type constructor [tc] is replaced by type variable of
         the same name, if [tc]'s name appears in [newtypes].
@@ -153,7 +153,7 @@ module Exp:
                 -> core_type -> expression
     val constraint_: ?loc:loc -> ?attrs:attrs -> expression -> core_type
                      -> expression
-    val send: ?loc:loc -> ?attrs:attrs -> expression -> string -> expression
+    val send: ?loc:loc -> ?attrs:attrs -> expression -> str -> expression
     val new_: ?loc:loc -> ?attrs:attrs -> lid -> expression
     val setinstvar: ?loc:loc -> ?attrs:attrs -> str -> expression -> expression
     val override: ?loc:loc -> ?attrs:attrs -> (str * expression) list
@@ -168,7 +168,7 @@ module Exp:
     val poly: ?loc:loc -> ?attrs:attrs -> expression -> core_type option
               -> expression
     val object_: ?loc:loc -> ?attrs:attrs -> class_structure -> expression
-    val newtype: ?loc:loc -> ?attrs:attrs -> string -> expression -> expression
+    val newtype: ?loc:loc -> ?attrs:attrs -> str -> expression -> expression
     val pack: ?loc:loc -> ?attrs:attrs -> module_expr -> expression
     val open_: ?loc:loc -> ?attrs:attrs -> override_flag -> lid -> expression
                -> expression
@@ -320,21 +320,20 @@ module Mb:
       str -> module_expr -> module_binding
   end
 
-(* Opens *)
+(** Opens *)
 module Opn:
   sig
     val mk: ?loc: loc -> ?attrs:attrs -> ?docs:docs ->
       ?override:override_flag -> lid -> open_description
   end
 
-(* Includes *)
+(** Includes *)
 module Incl:
   sig
     val mk: ?loc: loc -> ?attrs:attrs -> ?docs:docs -> 'a -> 'a include_infos
   end
 
 (** Value bindings *)
-
 module Vb:
   sig
     val mk: ?loc: loc -> ?attrs:attrs -> ?docs:docs -> ?text:text ->
@@ -365,9 +364,9 @@ module Ctf:
     val attr: class_type_field -> attribute -> class_type_field
 
     val inherit_: ?loc:loc -> ?attrs:attrs -> class_type -> class_type_field
-    val val_: ?loc:loc -> ?attrs:attrs -> string -> mutable_flag ->
+    val val_: ?loc:loc -> ?attrs:attrs -> str -> mutable_flag ->
       virtual_flag -> core_type -> class_type_field
-    val method_: ?loc:loc -> ?attrs:attrs -> string -> private_flag ->
+    val method_: ?loc:loc -> ?attrs:attrs -> str -> private_flag ->
       virtual_flag -> core_type -> class_type_field
     val constraint_: ?loc:loc -> ?attrs:attrs -> core_type -> core_type ->
       class_type_field
@@ -403,7 +402,7 @@ module Cf:
     val attr: class_field -> attribute -> class_field
 
     val inherit_: ?loc:loc -> ?attrs:attrs -> override_flag -> class_expr ->
-      string option -> class_field
+      str option -> class_field
     val val_: ?loc:loc -> ?attrs:attrs -> str -> mutable_flag ->
       class_field_kind -> class_field
     val method_: ?loc:loc -> ?attrs:attrs -> str -> private_flag ->

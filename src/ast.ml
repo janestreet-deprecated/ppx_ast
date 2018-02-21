@@ -30,11 +30,9 @@ open Import
    - adding a type longident_loc = longident loc and replacing all the occurences of the
    latter by the former. This is so that we can override iteration an the level of a
    longident loc
-   - adding Lexing.position
    - replacing all the (*IF_CURRENT = Foo.bar*) by: = Foo.bar
    - removing the extra values at the end of the file
    - replacing app [type ...] by [and ...] to make everything one recursive block
-   - adding the types [intf_or_impl] and [ast] at the end
    - adding [@@deriving_inline traverse][@@@end] at the end
 *)
 
@@ -74,7 +72,7 @@ and longident = Longident.t =
 
 and longident_loc = longident loc
 
-(* Auxiliary a.s.t. types used by parsetree and typedtree. *)
+(** Auxiliary AST types used by parsetree and typedtree. *)
 
 and rec_flag = Asttypes.rec_flag = Nonrecursive | Recursive
 
@@ -167,7 +165,7 @@ and core_type_desc = Parsetree.core_type_desc =
   | Ptyp_var of string
   (* 'a *)
   | Ptyp_arrow of arg_label * core_type * core_type
-  (* T1 -> T2       Nolabel
+  (* T1 -> T2       Simple
      ~l:T1 -> T2    Labelled
      ?l:T1 -> T2    Otional
   *)
@@ -181,7 +179,7 @@ and core_type_desc = Parsetree.core_type_desc =
      T tconstr
      (T1, ..., Tn) tconstr
   *)
-  | Ptyp_object of (string * attributes * core_type) list * closed_flag
+  | Ptyp_object of (string loc * attributes * core_type) list * closed_flag
   (* < l1:T1; ...; ln:Tn >     (flag = Closed)
      < l1:T1; ...; ln:Tn; .. > (flag = Open)
   *)
@@ -198,7 +196,7 @@ and core_type_desc = Parsetree.core_type_desc =
      [< `A|`B ]        (flag = Closed; labels = Some [])
      [< `A|`B > `X `Y ](flag = Closed; labels = Some ["X";"Y"])
   *)
-  | Ptyp_poly of string list * core_type
+  | Ptyp_poly of string loc list * core_type
   (* 'a1 ... 'an. T
 
      Can only appear in the following context:
@@ -308,7 +306,8 @@ and pattern_desc = Parsetree.pattern_desc =
   (* exception P *)
   | Ppat_extension of extension
   (* [%id] *)
-  | Ppat_open of longident loc * pattern
+  | Ppat_open of longident_loc * pattern
+  (* M.(P) *)
 
 (* Value expressions *)
 
@@ -333,7 +332,7 @@ and expression_desc = Parsetree.expression_desc =
   | Pexp_function of case list
   (* function P1 -> E1 | ... | Pn -> En *)
   | Pexp_fun of arg_label * expression option * pattern * expression
-  (* fun P -> E1                          (Nolabel, None)
+  (* fun P -> E1                          (Simple, None)
      fun ~l:P -> E1                       (Labelled l, None)
      fun ?l:P -> E1                       (Optional l, None)
      fun ?l:(P = E0) -> E1                (Optional l, Some E0)
@@ -397,7 +396,7 @@ and expression_desc = Parsetree.expression_desc =
   (* (E :> T)        (None, T)
      (E : T0 :> T)   (Some T0, T)
   *)
-  | Pexp_send of expression * string
+  | Pexp_send of expression * string loc
   (*  E # m *)
   | Pexp_new of longident_loc
   (* new M.c *)
@@ -422,7 +421,7 @@ and expression_desc = Parsetree.expression_desc =
      for methods (not values). *)
   | Pexp_object of class_structure
   (* object ... end *)
-  | Pexp_newtype of string * expression
+  | Pexp_newtype of string loc * expression
   (* fun (type t) -> E *)
   | Pexp_pack of module_expr
   (* (module ME)
@@ -430,9 +429,9 @@ and expression_desc = Parsetree.expression_desc =
      (module ME : S) is represented as
      Pexp_constraint(Pexp_pack, Ptyp_package S) *)
   | Pexp_open of override_flag * longident_loc * expression
-  (* let open M in E
-     let! open M in E
-  *)
+  (* M.(E)
+     let open M in E
+     let! open M in E *)
   | Pexp_extension of extension
   (* [%id] *)
   | Pexp_unreachable
@@ -514,7 +513,6 @@ and constructor_declaration = Parsetree.constructor_declaration =
   {
     pcd_name: string loc;
     pcd_args: constructor_arguments;
-    (* for GADT constructors, [pcd_res] is the right-hand side of the arrow *)
     pcd_res: core_type option;
     pcd_loc: location;
     pcd_attributes: attributes; (* C [@id1] [@id2] of ... *)
@@ -583,7 +581,7 @@ and class_type_desc = Parsetree.class_type_desc =
   | Pcty_signature of class_signature
   (* object ... end *)
   | Pcty_arrow of arg_label * core_type * class_type
-  (* T -> CT       Nolabel
+  (* T -> CT       Simple
      ~l:T -> CT    Labelled l
      ?l:T -> CT    Optional l
   *)
@@ -609,9 +607,9 @@ and class_type_field = Parsetree.class_type_field =
 and class_type_field_desc = Parsetree.class_type_field_desc =
   | Pctf_inherit of class_type
   (* inherit CT *)
-  | Pctf_val of (string * mutable_flag * virtual_flag * core_type)
+  | Pctf_val of (string loc * mutable_flag * virtual_flag * core_type)
   (* val x: T *)
-  | Pctf_method  of (string * private_flag * virtual_flag * core_type)
+  | Pctf_method  of (string loc * private_flag * virtual_flag * core_type)
   (* method x: T
 
      Note: T can be a Ptyp_poly.
@@ -659,7 +657,7 @@ and class_expr_desc = Parsetree.class_expr_desc =
   | Pcl_structure of class_structure
   (* object ... end *)
   | Pcl_fun of arg_label * expression option * pattern * class_expr
-  (* fun P -> CE                          (Nolabel, None)
+  (* fun P -> CE                          (Simple, None)
      fun ~l:P -> CE                       (Labelled l, None)
      fun ?l:P -> CE                       (Optional l, None)
      fun ?l:(P = E0) -> CE                (Optional l, Some E0)
@@ -697,7 +695,7 @@ and class_field = Parsetree.class_field =
   }
 
 and class_field_desc = Parsetree.class_field_desc =
-  | Pcf_inherit of override_flag * class_expr * string option
+  | Pcf_inherit of override_flag * class_expr * string loc option
   (* inherit CE
      inherit CE as x
      inherit! CE
@@ -1058,7 +1056,7 @@ class virtual map =
           let a =
             self#list
               (fun (a,b,c)  ->
-                 let a = self#string a  in
+                 let a = self#loc self#string a  in
                  let b = self#attributes b  in
                  let c = self#core_type c  in (a, b, c)) a
           in
@@ -1075,7 +1073,7 @@ class virtual map =
           let c = self#option (self#list self#label) c  in
           Ptyp_variant (a, b, c)
         | Ptyp_poly (a,b) ->
-          let a = self#list self#string a  in
+          let a = self#list (self#loc self#string) a  in
           let b = self#core_type b  in Ptyp_poly (a, b)
         | Ptyp_package a -> let a = self#package_type a  in Ptyp_package a
         | Ptyp_extension a -> let a = self#extension a  in Ptyp_extension a
@@ -1144,7 +1142,7 @@ class virtual map =
         | Ppat_exception a -> let a = self#pattern a  in Ppat_exception a
         | Ppat_extension a -> let a = self#extension a  in Ppat_extension a
         | Ppat_open (a,b) ->
-          let a = self#loc self#longident a  in
+          let a = self#longident_loc a  in
           let b = self#pattern b  in Ppat_open (a, b)
     method expression : expression -> expression=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
@@ -1234,7 +1232,7 @@ class virtual map =
           let c = self#core_type c  in Pexp_coerce (a, b, c)
         | Pexp_send (a,b) ->
           let a = self#expression a  in
-          let b = self#string b  in Pexp_send (a, b)
+          let b = self#loc self#string b  in Pexp_send (a, b)
         | Pexp_new a -> let a = self#longident_loc a  in Pexp_new a
         | Pexp_setinstvar (a,b) ->
           let a = self#loc self#string a  in
@@ -1261,7 +1259,7 @@ class virtual map =
           let b = self#option self#core_type b  in Pexp_poly (a, b)
         | Pexp_object a -> let a = self#class_structure a  in Pexp_object a
         | Pexp_newtype (a,b) ->
-          let a = self#string a  in
+          let a = self#loc self#string a  in
           let b = self#expression b  in Pexp_newtype (a, b)
         | Pexp_pack a -> let a = self#module_expr a  in Pexp_pack a
         | Pexp_open (a,b,c) ->
@@ -1429,7 +1427,7 @@ class virtual map =
         | Pctf_val a ->
           let a =
             (fun (a,b,c,d)  ->
-               let a = self#string a  in
+               let a = self#loc self#string a  in
                let b = self#mutable_flag b  in
                let c = self#virtual_flag c  in
                let d = self#core_type d  in (a, b, c, d)) a
@@ -1438,7 +1436,7 @@ class virtual map =
         | Pctf_method a ->
           let a =
             (fun (a,b,c,d)  ->
-               let a = self#string a  in
+               let a = self#loc self#string a  in
                let b = self#private_flag b  in
                let c = self#virtual_flag c  in
                let d = self#core_type d  in (a, b, c, d)) a
@@ -1530,7 +1528,8 @@ class virtual map =
         | Pcf_inherit (a,b,c) ->
           let a = self#override_flag a  in
           let b = self#class_expr b  in
-          let c = self#option self#string c  in Pcf_inherit (a, b, c)
+          let c = self#option (self#loc self#string) c  in
+          Pcf_inherit (a, b, c)
         | Pcf_val a ->
           let a =
             (fun (a,b,c)  ->
@@ -1841,7 +1840,8 @@ class virtual iter =
         | Ptyp_object (a,b) ->
           (self#list
              (fun (a,b,c)  ->
-                self#string a; self#attributes b; self#core_type c) a;
+                self#loc self#string a; self#attributes b; self#core_type c)
+             a;
            self#closed_flag b)
         | Ptyp_class (a,b) ->
           (self#longident_loc a; self#list self#core_type b)
@@ -1850,7 +1850,8 @@ class virtual iter =
           (self#list self#row_field a;
            self#closed_flag b;
            self#option (self#list self#label) c)
-        | Ptyp_poly (a,b) -> (self#list self#string a; self#core_type b)
+        | Ptyp_poly (a,b) ->
+          (self#list (self#loc self#string) a; self#core_type b)
         | Ptyp_package a -> self#package_type a
         | Ptyp_extension a -> self#extension a
     method package_type : package_type -> unit=
@@ -1894,7 +1895,7 @@ class virtual iter =
         | Ppat_unpack a -> self#loc self#string a
         | Ppat_exception a -> self#pattern a
         | Ppat_extension a -> self#extension a
-        | Ppat_open (a,b) -> (self#loc self#longident a; self#pattern b)
+        | Ppat_open (a,b) -> (self#longident_loc a; self#pattern b)
     method expression : expression -> unit=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
         self#expression_desc pexp_desc;
@@ -1949,7 +1950,7 @@ class virtual iter =
           (self#expression a;
            self#option self#core_type b;
            self#core_type c)
-        | Pexp_send (a,b) -> (self#expression a; self#string b)
+        | Pexp_send (a,b) -> (self#expression a; self#loc self#string b)
         | Pexp_new a -> self#longident_loc a
         | Pexp_setinstvar (a,b) ->
           (self#loc self#string a; self#expression b)
@@ -1965,7 +1966,7 @@ class virtual iter =
         | Pexp_poly (a,b) ->
           (self#expression a; self#option self#core_type b)
         | Pexp_object a -> self#class_structure a
-        | Pexp_newtype (a,b) -> (self#string a; self#expression b)
+        | Pexp_newtype (a,b) -> (self#loc self#string a; self#expression b)
         | Pexp_pack a -> self#module_expr a
         | Pexp_open (a,b,c) ->
           (self#override_flag a; self#longident_loc b; self#expression c)
@@ -2077,13 +2078,13 @@ class virtual iter =
         | Pctf_inherit a -> self#class_type a
         | Pctf_val a ->
           ((fun (a,b,c,d)  ->
-             self#string a;
+             self#loc self#string a;
              self#mutable_flag b;
              self#virtual_flag c;
              self#core_type d)) a
         | Pctf_method a ->
           ((fun (a,b,c,d)  ->
-             self#string a;
+             self#loc self#string a;
              self#private_flag b;
              self#virtual_flag c;
              self#core_type d)) a
@@ -2147,7 +2148,7 @@ class virtual iter =
         | Pcf_inherit (a,b,c) ->
           (self#override_flag a;
            self#class_expr b;
-           self#option self#string c)
+           self#option (self#loc self#string) c)
         | Pcf_val a ->
           ((fun (a,b,c)  ->
              self#loc self#string a;
@@ -2437,7 +2438,7 @@ class virtual ['acc] fold =
             self#list
               (fun (a,b,c)  ->
                  fun acc  ->
-                   let acc = self#string a acc  in
+                   let acc = self#loc self#string a acc  in
                    let acc = self#attributes b acc  in
                    let acc = self#core_type c acc  in acc) a acc
           in
@@ -2453,7 +2454,7 @@ class virtual ['acc] fold =
           let acc = self#closed_flag b acc  in
           let acc = self#option (self#list self#label) c acc  in acc
         | Ptyp_poly (a,b) ->
-          let acc = self#list self#string a acc  in
+          let acc = self#list (self#loc self#string) a acc  in
           let acc = self#core_type b acc  in acc
         | Ptyp_package a -> self#package_type a acc
         | Ptyp_extension a -> self#extension a acc
@@ -2527,7 +2528,7 @@ class virtual ['acc] fold =
         | Ppat_exception a -> self#pattern a acc
         | Ppat_extension a -> self#extension a acc
         | Ppat_open (a,b) ->
-          let acc = self#loc self#longident a acc  in
+          let acc = self#longident_loc a acc  in
           let acc = self#pattern b acc  in acc
     method expression : expression -> 'acc -> 'acc=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
@@ -2616,7 +2617,7 @@ class virtual ['acc] fold =
           let acc = self#core_type c acc  in acc
         | Pexp_send (a,b) ->
           let acc = self#expression a acc  in
-          let acc = self#string b acc  in acc
+          let acc = self#loc self#string b acc  in acc
         | Pexp_new a -> self#longident_loc a acc
         | Pexp_setinstvar (a,b) ->
           let acc = self#loc self#string a acc  in
@@ -2641,7 +2642,7 @@ class virtual ['acc] fold =
           let acc = self#option self#core_type b acc  in acc
         | Pexp_object a -> self#class_structure a acc
         | Pexp_newtype (a,b) ->
-          let acc = self#string a acc  in
+          let acc = self#loc self#string a acc  in
           let acc = self#expression b acc  in acc
         | Pexp_pack a -> self#module_expr a acc
         | Pexp_open (a,b,c) ->
@@ -2793,14 +2794,14 @@ class virtual ['acc] fold =
         | Pctf_val a ->
           ((fun (a,b,c,d)  ->
              fun acc  ->
-               let acc = self#string a acc  in
+               let acc = self#loc self#string a acc  in
                let acc = self#mutable_flag b acc  in
                let acc = self#virtual_flag c acc  in
                let acc = self#core_type d acc  in acc)) a acc
         | Pctf_method a ->
           ((fun (a,b,c,d)  ->
              fun acc  ->
-               let acc = self#string a acc  in
+               let acc = self#loc self#string a acc  in
                let acc = self#private_flag b acc  in
                let acc = self#virtual_flag c acc  in
                let acc = self#core_type d acc  in acc)) a acc
@@ -2890,7 +2891,7 @@ class virtual ['acc] fold =
         | Pcf_inherit (a,b,c) ->
           let acc = self#override_flag a acc  in
           let acc = self#class_expr b acc  in
-          let acc = self#option self#string c acc  in acc
+          let acc = self#option (self#loc self#string) c acc  in acc
         | Pcf_val a ->
           ((fun (a,b,c)  ->
              fun acc  ->
@@ -3257,7 +3258,7 @@ class virtual ['acc] fold_map =
             self#list
               (fun (a,b,c)  ->
                  fun acc  ->
-                   let (a,acc) = self#string a acc  in
+                   let (a,acc) = self#loc self#string a acc  in
                    let (b,acc) = self#attributes b acc  in
                    let (c,acc) = self#core_type c acc  in
                    ((a, b, c), acc)) a acc
@@ -3277,7 +3278,7 @@ class virtual ['acc] fold_map =
           let (c,acc) = self#option (self#list self#label) c acc  in
           ((Ptyp_variant (a, b, c)), acc)
         | Ptyp_poly (a,b) ->
-          let (a,acc) = self#list self#string a acc  in
+          let (a,acc) = self#list (self#loc self#string) a acc  in
           let (b,acc) = self#core_type b acc  in
           ((Ptyp_poly (a, b)), acc)
         | Ptyp_package a ->
@@ -3381,7 +3382,7 @@ class virtual ['acc] fold_map =
           let (a,acc) = self#extension a acc  in
           ((Ppat_extension a), acc)
         | Ppat_open (a,b) ->
-          let (a,acc) = self#loc self#longident a acc  in
+          let (a,acc) = self#longident_loc a acc  in
           let (b,acc) = self#pattern b acc  in ((Ppat_open (a, b)), acc)
     method expression : expression -> 'acc -> (expression * 'acc)=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
@@ -3498,7 +3499,8 @@ class virtual ['acc] fold_map =
           ((Pexp_coerce (a, b, c)), acc)
         | Pexp_send (a,b) ->
           let (a,acc) = self#expression a acc  in
-          let (b,acc) = self#string b acc  in ((Pexp_send (a, b)), acc)
+          let (b,acc) = self#loc self#string b acc  in
+          ((Pexp_send (a, b)), acc)
         | Pexp_new a ->
           let (a,acc) = self#longident_loc a acc  in ((Pexp_new a), acc)
         | Pexp_setinstvar (a,b) ->
@@ -3536,7 +3538,7 @@ class virtual ['acc] fold_map =
           let (a,acc) = self#class_structure a acc  in
           ((Pexp_object a), acc)
         | Pexp_newtype (a,b) ->
-          let (a,acc) = self#string a acc  in
+          let (a,acc) = self#loc self#string a acc  in
           let (b,acc) = self#expression b acc  in
           ((Pexp_newtype (a, b)), acc)
         | Pexp_pack a ->
@@ -3758,7 +3760,7 @@ class virtual ['acc] fold_map =
           let (a,acc) =
             (fun (a,b,c,d)  ->
                fun acc  ->
-                 let (a,acc) = self#string a acc  in
+                 let (a,acc) = self#loc self#string a acc  in
                  let (b,acc) = self#mutable_flag b acc  in
                  let (c,acc) = self#virtual_flag c acc  in
                  let (d,acc) = self#core_type d acc  in
@@ -3769,7 +3771,7 @@ class virtual ['acc] fold_map =
           let (a,acc) =
             (fun (a,b,c,d)  ->
                fun acc  ->
-                 let (a,acc) = self#string a acc  in
+                 let (a,acc) = self#loc self#string a acc  in
                  let (b,acc) = self#private_flag b acc  in
                  let (c,acc) = self#virtual_flag c acc  in
                  let (d,acc) = self#core_type d acc  in
@@ -3898,7 +3900,7 @@ class virtual ['acc] fold_map =
         | Pcf_inherit (a,b,c) ->
           let (a,acc) = self#override_flag a acc  in
           let (b,acc) = self#class_expr b acc  in
-          let (c,acc) = self#option self#string c acc  in
+          let (c,acc) = self#option (self#loc self#string) c acc  in
           ((Pcf_inherit (a, b, c)), acc)
         | Pcf_val a ->
           let (a,acc) =
@@ -4381,7 +4383,7 @@ class virtual ['ctx] map_with_context =
             self#list
               (fun ctx  ->
                  fun (a,b,c)  ->
-                   let a = self#string ctx a  in
+                   let a = self#loc self#string ctx a  in
                    let b = self#attributes ctx b  in
                    let c = self#core_type ctx c  in (a, b, c)) ctx a
           in
@@ -4398,7 +4400,7 @@ class virtual ['ctx] map_with_context =
           let c = self#option (self#list self#label) ctx c  in
           Ptyp_variant (a, b, c)
         | Ptyp_poly (a,b) ->
-          let a = self#list self#string ctx a  in
+          let a = self#list (self#loc self#string) ctx a  in
           let b = self#core_type ctx b  in Ptyp_poly (a, b)
         | Ptyp_package a ->
           let a = self#package_type ctx a  in Ptyp_package a
@@ -4482,7 +4484,7 @@ class virtual ['ctx] map_with_context =
         | Ppat_extension a ->
           let a = self#extension ctx a  in Ppat_extension a
         | Ppat_open (a,b) ->
-          let a = self#loc self#longident ctx a  in
+          let a = self#longident_loc ctx a  in
           let b = self#pattern ctx b  in Ppat_open (a, b)
     method expression : 'ctx -> expression -> expression=
       fun ctx  ->
@@ -4580,7 +4582,7 @@ class virtual ['ctx] map_with_context =
           let c = self#core_type ctx c  in Pexp_coerce (a, b, c)
         | Pexp_send (a,b) ->
           let a = self#expression ctx a  in
-          let b = self#string ctx b  in Pexp_send (a, b)
+          let b = self#loc self#string ctx b  in Pexp_send (a, b)
         | Pexp_new a -> let a = self#longident_loc ctx a  in Pexp_new a
         | Pexp_setinstvar (a,b) ->
           let a = self#loc self#string ctx a  in
@@ -4609,7 +4611,7 @@ class virtual ['ctx] map_with_context =
         | Pexp_object a ->
           let a = self#class_structure ctx a  in Pexp_object a
         | Pexp_newtype (a,b) ->
-          let a = self#string ctx a  in
+          let a = self#loc self#string ctx a  in
           let b = self#expression ctx b  in Pexp_newtype (a, b)
         | Pexp_pack a -> let a = self#module_expr ctx a  in Pexp_pack a
         | Pexp_open (a,b,c) ->
@@ -4808,7 +4810,7 @@ class virtual ['ctx] map_with_context =
           let a =
             (fun ctx  ->
                fun (a,b,c,d)  ->
-                 let a = self#string ctx a  in
+                 let a = self#loc self#string ctx a  in
                  let b = self#mutable_flag ctx b  in
                  let c = self#virtual_flag ctx c  in
                  let d = self#core_type ctx d  in (a, b, c, d)) ctx a
@@ -4818,7 +4820,7 @@ class virtual ['ctx] map_with_context =
           let a =
             (fun ctx  ->
                fun (a,b,c,d)  ->
-                 let a = self#string ctx a  in
+                 let a = self#loc self#string ctx a  in
                  let b = self#private_flag ctx b  in
                  let c = self#virtual_flag ctx c  in
                  let d = self#core_type ctx d  in (a, b, c, d)) ctx a
@@ -4930,7 +4932,8 @@ class virtual ['ctx] map_with_context =
         | Pcf_inherit (a,b,c) ->
           let a = self#override_flag ctx a  in
           let b = self#class_expr ctx b  in
-          let c = self#option self#string ctx c  in Pcf_inherit (a, b, c)
+          let c = self#option (self#loc self#string) ctx c  in
+          Pcf_inherit (a, b, c)
         | Pcf_val a ->
           let a =
             (fun ctx  ->
@@ -5376,7 +5379,7 @@ class virtual ['res] lift =
           let a =
             self#list
               (fun (a,b,c)  ->
-                 let a = self#string a  in
+                 let a = self#loc self#string a  in
                  let b = self#attributes b  in
                  let c = self#core_type c  in self#tuple [a; b; c]) a
           in
@@ -5394,7 +5397,7 @@ class virtual ['res] lift =
           let c = self#option (self#list self#label) c  in
           self#constr "Ptyp_variant" [a; b; c]
         | Ptyp_poly (a,b) ->
-          let a = self#list self#string a  in
+          let a = self#list (self#loc self#string) a  in
           let b = self#core_type b  in self#constr "Ptyp_poly" [a; b]
         | Ptyp_package a ->
           let a = self#package_type a  in self#constr "Ptyp_package" [a]
@@ -5482,7 +5485,7 @@ class virtual ['res] lift =
         | Ppat_extension a ->
           let a = self#extension a  in self#constr "Ppat_extension" [a]
         | Ppat_open (a,b) ->
-          let a = self#loc self#longident a  in
+          let a = self#longident_loc a  in
           let b = self#pattern b  in self#constr "Ppat_open" [a; b]
     method expression : expression -> 'res=
       fun { pexp_desc; pexp_loc; pexp_attributes }  ->
@@ -5584,7 +5587,7 @@ class virtual ['res] lift =
           let c = self#core_type c  in self#constr "Pexp_coerce" [a; b; c]
         | Pexp_send (a,b) ->
           let a = self#expression a  in
-          let b = self#string b  in self#constr "Pexp_send" [a; b]
+          let b = self#loc self#string b  in self#constr "Pexp_send" [a; b]
         | Pexp_new a ->
           let a = self#longident_loc a  in self#constr "Pexp_new" [a]
         | Pexp_setinstvar (a,b) ->
@@ -5619,7 +5622,7 @@ class virtual ['res] lift =
         | Pexp_object a ->
           let a = self#class_structure a  in self#constr "Pexp_object" [a]
         | Pexp_newtype (a,b) ->
-          let a = self#string a  in
+          let a = self#loc self#string a  in
           let b = self#expression b  in self#constr "Pexp_newtype" [a; b]
         | Pexp_pack a ->
           let a = self#module_expr a  in self#constr "Pexp_pack" [a]
@@ -5819,7 +5822,7 @@ class virtual ['res] lift =
         | Pctf_val a ->
           let a =
             (fun (a,b,c,d)  ->
-               let a = self#string a  in
+               let a = self#loc self#string a  in
                let b = self#mutable_flag b  in
                let c = self#virtual_flag c  in
                let d = self#core_type d  in self#tuple [a; b; c; d]) a
@@ -5828,7 +5831,7 @@ class virtual ['res] lift =
         | Pctf_method a ->
           let a =
             (fun (a,b,c,d)  ->
-               let a = self#string a  in
+               let a = self#loc self#string a  in
                let b = self#private_flag b  in
                let c = self#virtual_flag c  in
                let d = self#core_type d  in self#tuple [a; b; c; d]) a
@@ -5936,7 +5939,7 @@ class virtual ['res] lift =
         | Pcf_inherit (a,b,c) ->
           let a = self#override_flag a  in
           let b = self#class_expr b  in
-          let c = self#option self#string c  in
+          let c = self#option (self#loc self#string) c  in
           self#constr "Pcf_inherit" [a; b; c]
         | Pcf_val a ->
           let a =

@@ -31,6 +31,7 @@ val string_of_structure: Parsetree.structure -> string
 val class_expr       : Format.formatter -> Parsetree.class_expr       -> unit
 val class_field      : Format.formatter -> Parsetree.class_field      -> unit
 val class_type       : Format.formatter -> Parsetree.class_type       -> unit
+val class_signature  : Format.formatter -> Parsetree.class_signature  -> unit
 val class_type_field : Format.formatter -> Parsetree.class_type_field -> unit
 val module_expr      : Format.formatter -> Parsetree.module_expr      -> unit
 val module_type      : Format.formatter -> Parsetree.module_type      -> unit

@@ -71,6 +71,7 @@ module Typ = struct
     let check_variable vl loc v =
       if List.mem v vl then
         raise Syntaxerr.(Error(Variable_in_scope(loc,v))) in
+    let var_names = List.map (fun v -> v.txt) var_names in
     let rec loop t =
       let desc =
         match t.ptyp_desc with
@@ -99,7 +100,7 @@ module Typ = struct
                          flag, lbl_lst_option)
         | Ptyp_poly(string_lst, core_type) ->
           List.iter (fun v ->
-            check_variable var_names t.ptyp_loc v) string_lst;
+            check_variable var_names t.ptyp_loc v.txt) string_lst;
             Ptyp_poly(string_lst, loop core_type)
         | Ptyp_package(longident,lst) ->
             Ptyp_package(longident,List.map (fun (n,typ) -> (n,loop typ) ) lst)
@@ -115,6 +116,7 @@ module Typ = struct
             Rinherit (loop t)
     in
     loop t
+
 end
 
 module Pat = struct
@@ -318,8 +320,8 @@ module Ctf = struct
   let extension ?loc ?attrs a = mk ?loc ?attrs (Pctf_extension a)
   let attribute ?loc a = mk ?loc (Pctf_attribute a)
   let text txt =
-    let f_txt = List.filter (fun ds -> docstring_body ds <> "") txt in
-    List.map
+   let f_txt = List.filter (fun ds -> docstring_body ds <> "") txt in
+     List.map
       (fun ds -> attribute ~loc:(docstring_loc ds) (text_attr ds))
       f_txt
 

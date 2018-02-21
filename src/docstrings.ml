@@ -123,7 +123,7 @@ let info_attr = docs_attr
 
 let add_info_attrs info attrs =
   match info with
-  | None | Some { ds_body=""; _ } -> attrs
+  | None | Some {ds_body=""; _} -> attrs
   | Some ds -> attrs @ [info_attr ds]
 
 (* Docstrings not attached to a specifc item *)
