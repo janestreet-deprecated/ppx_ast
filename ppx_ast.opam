@@ -12,6 +12,7 @@ depends: [
   "jbuilder"                {build & >= "1.0+beta12"}
   "ocaml-compiler-libs"     {>= "v0.10.0"}
   "ocaml-migrate-parsetree" {>= "0.4"}
+  "ppxlib"                  {>= "v0.11.0"}
 ]
 available: [ ocaml-version >= "4.04.1" ]
 descr: "
