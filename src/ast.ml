@@ -20,7 +20,7 @@ open Import
 (* This file is obtained by:
 
    - copying a subset of the corresponding ast_xxx.ml file from migrate-parsetree
-   (sub-modules Asttypes and Parsetree)
+     (sub-modules Asttypes and Parsetree)
    - adding the type definitions for position, location, loc and longident
    - flattening all the modules
    - removing Asttypes.constant (unused and conflicts with Parsetree.constant)
@@ -28,8 +28,8 @@ open Import
    - - Location.t -> location
    - - Longident.t -> longident
    - adding a type longident_loc = longident loc and replacing all the occurences of the
-   latter by the former. This is so that we can override iteration an the level of a
-   longident loc
+     latter by the former. This is so that we can override iteration an the level of a
+     longident loc
    - replacing all the (*IF_CURRENT = Foo.bar*) by: = Foo.bar
    - removing the extra values at the end of the file
    - replacing app [type ...] by [and ...] to make everything one recursive block
@@ -202,8 +202,8 @@ and core_type_desc = Parsetree.core_type_desc =
      Can only appear in the following context:
 
      - As the core_type of a Ppat_constraint node corresponding
-     to a constraint on a let-binding: let x : 'a1 ... 'an. T
-     = e ...
+       to a constraint on a let-binding: let x : 'a1 ... 'an. T
+       = e ...
 
      - Under Cfk_virtual for methods (not values).
 
@@ -235,9 +235,9 @@ and row_field = Parsetree.row_field =
      [`A of & T1 & .. & Tn] ( true,  [T1;...Tn] )
 
      - The 2nd field is true if the tag contains a
-     constant (empty) constructor.
+       constant (empty) constructor.
      - '&' occurs when several types are used for the same constructor
-     (see 4.2 in the manual)
+       (see 4.2 in the manual)
 
      - TODO: switch to a record representation, and keep location
   *)
@@ -3120,7 +3120,7 @@ class virtual ['acc] fold_map =
       'a . ('a -> 'acc -> ('a * 'acc)) -> 'a list -> 'acc -> ('a list * 'acc)
     method virtual  option :
       'a .
-        ('a -> 'acc -> ('a * 'acc)) ->
+      ('a -> 'acc -> ('a * 'acc)) ->
       'a option -> 'acc -> ('a option * 'acc)
     method virtual  string : string -> 'acc -> (string * 'acc)
     method position : position -> 'acc -> (position * 'acc)=
@@ -3795,7 +3795,7 @@ class virtual ['acc] fold_map =
           ((Pctf_extension a), acc)
     method class_infos :
       'a .
-        ('a -> 'acc -> ('a * 'acc)) ->
+      ('a -> 'acc -> ('a * 'acc)) ->
       'a class_infos -> 'acc -> ('a class_infos * 'acc)=
       fun _a  ->
       fun
@@ -4074,7 +4074,7 @@ class virtual ['acc] fold_map =
         ({ popen_lid; popen_override; popen_loc; popen_attributes }, acc)
     method include_infos :
       'a .
-        ('a -> 'acc -> ('a * 'acc)) ->
+      ('a -> 'acc -> ('a * 'acc)) ->
       'a include_infos -> 'acc -> ('a include_infos * 'acc)=
       fun _a  ->
       fun { pincl_mod; pincl_loc; pincl_attributes }  ->
